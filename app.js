@@ -238,9 +238,22 @@ function openAddModal(set) {
   $("lookup-input").focus();
 }
 
-$("add-close").addEventListener("click", () => {
+function closeAddModal() {
+  if (addModal.hidden) return;
   addModal.hidden = true;
   loadTrack(currentTrack);
+}
+
+$("add-close").addEventListener("click", closeAddModal);
+
+// 창 바깥(어두운 배경)을 눌러도 닫히게 한다.
+addModal.addEventListener("click", (e) => {
+  if (e.target === addModal) closeAddModal();
+});
+
+// Esc 로도 닫히게 한다.
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closeAddModal();
 });
 
 $("lookup-form").addEventListener("submit", async (e) => {
