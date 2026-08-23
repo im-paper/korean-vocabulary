@@ -1,4 +1,6 @@
 import { WORD_DATA } from "./data/words.js";
+import { escapeHtml, parseExample } from "./utils.js";
+import { renderQuiz } from "./quiz.js";
 
 const dayNav = document.getElementById("day-nav");
 const content = document.getElementById("content");
@@ -39,18 +41,29 @@ function renderDay(day) {
     ${day.book ? `<div class="book">${escapeHtml(day.book)}</div>` : ""}
     ${day.note ? `<div class="note">${escapeHtml(day.note)}</div>` : ""}
   `;
+
+  const quizBtn = document.createElement("button");
+  quizBtn.type = "button";
+  quizBtn.className = "quiz-start-btn";
+  quizBtn.textContent = "이 날짜 단어로 퀴즈 풀기";
+  quizBtn.addEventListener("click", () => {
+    renderQuiz(content, day, () => renderDay(day));
+  });
+  meta.appendChild(quizBtn);
+
   content.appendChild(meta);
 
   const grid = document.createElement("div");
   grid.className = "word-grid";
 
   day.words.forEach((w) => {
+    const { plain } = parseExample(w.example);
     const card = document.createElement("article");
     card.className = "word-card";
     card.innerHTML = `
       <p class="word">${escapeHtml(w.word)}</p>
       <p class="meaning">${escapeHtml(w.meaning)}</p>
-      <p class="example">${escapeHtml(w.example)}</p>
+      <p class="example">${escapeHtml(plain)}</p>
       <div class="synonyms">
         ${(w.synonyms || [])
           .map((s) => `<span class="tag">${escapeHtml(s)}</span>`)
@@ -61,12 +74,6 @@ function renderDay(day) {
   });
 
   content.appendChild(grid);
-}
-
-function escapeHtml(str) {
-  const div = document.createElement("div");
-  div.textContent = str ?? "";
-  return div.innerHTML;
 }
 
 function render(selectedDate) {
