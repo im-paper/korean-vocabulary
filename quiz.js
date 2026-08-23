@@ -1,5 +1,5 @@
 import { parseExample, escapeHtml } from "./utils.js";
-import { recordAttempt } from "./storage.js";
+import { recordAttempt } from "./lib/db.js";
 
 function shuffle(arr) {
   const a = [...arr];
@@ -11,15 +11,15 @@ function shuffle(arr) {
 }
 
 // 예문 빈칸 채우기 퀴즈. container에 렌더링하고, 종료 시 onExit을 호출한다.
-export function renderQuiz(container, day, onExit) {
+export function renderQuiz(container, set, onExit) {
   const questions = shuffle(
-    day.words
+    set.words
       .map((w) => ({ word: w, parsed: parseExample(w.example) }))
       .filter((q) => q.parsed.answer)
   );
 
   if (questions.length === 0) {
-    container.innerHTML = `<div class="empty-state">이 날짜는 퀴즈용 예문이 아직 준비되지 않았어요.</div>`;
+    container.innerHTML = `<div class="empty-state">이 세트는 퀴즈용 예문이 아직 준비되지 않았어요.</div>`;
     return;
   }
 
@@ -58,7 +58,10 @@ export function renderQuiz(container, day, onExit) {
       }
       answered = true;
       const isCorrect = input.value.trim() === q.parsed.answer;
-      recordAttempt(q.word.word, isCorrect);
+      // 기록 저장 실패가 퀴즈 진행을 막지는 않도록 한다.
+      recordAttempt(q.word.id, isCorrect).catch((err) =>
+        console.error("기록 저장 실패:", err)
+      );
       results.push({ word: q.word.word, correct: isCorrect });
 
       feedback.innerHTML = isCorrect

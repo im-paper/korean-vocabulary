@@ -1,2 +1,7 @@
 .DS_Store
 .vercel
+
+# 사전 API 인증키 등 비밀 값 — 절대 저장소에 올라가면 안 됩니다.
+.env
+.env.*
+!.env.example

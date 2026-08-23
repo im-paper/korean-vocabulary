@@ -7,23 +7,63 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="site-header">
-    <h1 id="site-title">페이퍼 어휘장</h1>
-    <p id="site-subtitle" class="subtitle">국립국어원 표준국어대사전 기준</p>
-  </header>
+  <!-- 로그인 전 화면 -->
+  <section id="auth-screen" class="auth-screen" hidden>
+    <div class="auth-card">
+      <h1>페이퍼 어휘장</h1>
+      <p class="auth-desc">
+        이메일로 로그인 링크를 보내 드려요. 비밀번호는 필요 없어요.<br>
+        로그인하면 어느 기기에서든 같은 단어장과 기록을 볼 수 있어요.
+      </p>
+      <form id="login-form" autocomplete="on">
+        <input type="email" id="login-email" placeholder="이메일 주소" required>
+        <button type="submit">로그인 링크 받기</button>
+      </form>
+      <p id="auth-message" class="auth-message"></p>
+    </div>
+  </section>
 
-  <div id="track-tabs" class="track-tabs" role="tablist" aria-label="어휘장 종류">
-    <button type="button" class="track-tab active" data-track="daily" role="tab">일일 어휘</button>
-    <button type="button" class="track-tab" data-track="book" role="tab">책별 어휘</button>
+  <!-- 로그인 후 화면 -->
+  <div id="app-screen" hidden>
+    <header class="site-header">
+      <h1 id="site-title">페이퍼 어휘장</h1>
+      <p id="site-subtitle" class="subtitle">국립국어원 표준국어대사전 기준</p>
+      <div class="header-actions">
+        <span id="user-email" class="user-email"></span>
+        <button type="button" id="logout-btn" class="link-btn">로그아웃</button>
+      </div>
+    </header>
+
+    <div id="track-tabs" class="track-tabs" role="tablist" aria-label="어휘장 종류">
+      <button type="button" class="track-tab active" data-track="daily" role="tab">일일 어휘</button>
+      <button type="button" class="track-tab" data-track="book" role="tab">책별 어휘</button>
+    </div>
+
+    <nav id="day-nav" class="day-nav" aria-label="세트 선택"></nav>
+
+    <main id="content" class="content"></main>
+
+    <footer class="site-footer">
+      <p>뜻과 예문은 국립국어원 표준국어대사전을 기준으로 작성됩니다.</p>
+    </footer>
   </div>
 
-  <nav id="day-nav" class="day-nav" aria-label="세트 선택"></nav>
+  <!-- 단어 추가 창 -->
+  <div id="add-modal" class="modal" hidden>
+    <div class="modal-box">
+      <div class="modal-head">
+        <h2 id="add-modal-title">단어 추가</h2>
+        <button type="button" id="add-close" class="link-btn">닫기</button>
+      </div>
 
-  <main id="content" class="content"></main>
+      <form id="lookup-form" autocomplete="off">
+        <input type="text" id="lookup-input" placeholder="단어를 입력하세요 (예: 아득하다)" required>
+        <button type="submit">사전에서 찾기</button>
+      </form>
 
-  <footer class="site-footer">
-    <p>뜻과 예문은 국립국어원 표준국어대사전을 기준으로 작성됩니다.</p>
-  </footer>
+      <div id="lookup-result" class="lookup-result"></div>
+    </div>
+  </div>
 
   <script type="module" src="app.js"></script>
 </body>
