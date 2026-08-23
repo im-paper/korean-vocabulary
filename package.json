@@ -1,0 +1,7 @@
+{
+  "name": "korean-vocabulary",
+  "private": true,
+  "version": "1.0.0",
+  "description": "페이퍼 어휘장 - 표준국어대사전 기반 한국어 어휘 학습",
+  "type": "module"
+}
