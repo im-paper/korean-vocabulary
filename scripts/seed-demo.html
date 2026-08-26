@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>밑줄 미리보기용 데모 데이터</title>
+<style>
+  body { font: 15px/1.7 -apple-system, sans-serif; max-width: 34rem; margin: 4rem auto; padding: 0 1.2rem; }
+  code { background: #eee; padding: 0.1em 0.3em; border-radius: 3px; }
+  a { display: inline-block; margin-top: 1rem; }
+</style>
+</head>
+<body>
+<h1>데모 데이터 넣기</h1>
+<p>
+  밑줄 기능(PROMPT.md 5.7)은 <strong>되새김할 단어가 있어야</strong> 화면에 나타납니다.
+  보통은 며칠 써야 그 상태가 되므로, 확인용으로 아래 데이터를 넣습니다.
+</p>
+<ul>
+  <li>인간실격을 책장에 꽂음</li>
+  <li>서문 단어들을 <em>어제까지 복습할 것</em>으로 표시 → 되새김 피드가 채워짐</li>
+  <li>밑줄 두 줄 (그중 하나에 배운 단어가 들어 있음)</li>
+</ul>
+<p><strong>확인이 끝나면 이 파일은 지워도 됩니다.</strong> 앱 코드가 아니라 개발용 도구입니다.</p>
+
+<p id="log"></p>
+<a href="../index.html">→ 앱 열기</a>
+<p><button type="button" id="clear">데모 데이터 지우기</button></p>
+
+<script>
+const day = (n) => {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  const p = (x) => String(x).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+};
+
+// 인간실격 서문의 단어 ID (data/words.js 와 같은 고정 ID)
+const IDS = [
+  "ningen-1-위선",
+  "ningen-1-경멸",
+  "ningen-1-익살",
+  "ningen-1-비굴",
+];
+
+const progress = {};
+IDS.forEach((id, i) => {
+  progress[id] = {
+    known: false,
+    interval: 1,
+    dueAt: day(-1), // 어제까지였던 것 = 오늘 되새김에 나옴
+    attempts: i,
+    correct: i,
+    lastSeenAt: day(-2),
+  };
+});
+
+const marks = {
+  ningen: [
+    {
+      text: "그는 익살로 사람들을 웃겼지만, 그 웃음 밑에는 경멸이 깔려 있었다.",
+      page: null,
+      wordIds: ["ningen-1-익살", "ningen-1-경멸"],
+      createdAt: new Date(Date.now() - 86400000).toISOString(),
+    },
+    {
+      text: "부끄럼 많은 생애를 보냈습니다.",
+      page: 9,
+      wordIds: [],
+      createdAt: new Date(Date.now() - 3 * 86400000).toISOString(),
+    },
+  ],
+};
+
+localStorage.setItem("paper.shelf", JSON.stringify(["ningen"]));
+localStorage.setItem("paper.progress", JSON.stringify(progress));
+localStorage.setItem("paper.marks", JSON.stringify(marks));
+document.getElementById("log").textContent =
+  "넣었습니다. 단어 " + IDS.length + "개 · 밑줄 2개";
+
+document.getElementById("clear").addEventListener("click", () => {
+  ["paper.shelf", "paper.progress", "paper.marks"].forEach((k) =>
+    localStorage.removeItem(k)
+  );
+  document.getElementById("log").textContent = "지웠습니다.";
+});
+</script>
+</body>
+</html>

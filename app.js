@@ -144,9 +144,6 @@ const sentenceCount = (wordId) => (sentences[wordId] || []).length;
 
 const markList = (slug) => myMarks[slug] || [];
 
-const markTotal = () =>
-  Object.values(myMarks).reduce((n, list) => n + list.length, 0);
-
 // 책 한 권의 단어. 콘텐츠 책과 내가 꽂은 책 양쪽을 봅니다.
 function wordsOfBook(slug) {
   const b = bookOf(slug);
@@ -215,6 +212,7 @@ function wireMarkForms() {
 
       input.disabled = true;
       const slug = form.dataset.book;
+      const ask = form.closest(".mark-ask");
       const hit = await saveMark(slug, text);
 
       form.outerHTML = `
@@ -230,6 +228,13 @@ function wireMarkForms() {
               : "밑줄에 담았습니다. 되새김에서 다시 만나요."
           }</p>
         </div>`;
+
+      // 아래 줄의 개수도 함께 맞춥니다. 방금 남긴 것이 세어지지 않으면
+      // 저장이 안 된 것처럼 보입니다.
+      const hint = ask?.querySelector(".hint");
+      if (hint) {
+        hint.textContent = `이 책에 밑줄 ${markList(slug).length}개. 되새김에서 다시 만납니다.`;
+      }
     });
   });
 }
@@ -342,10 +347,59 @@ function searchMinumsa(q) {
   ).slice(0, 30);
 }
 
-function renderAdd() {
+// 검색 결과 목록만 그립니다. 입력칸과 분리해 둔 이유는 한글 조합 때문입니다.
+function hitsHtml() {
   const on = new Set(myBooks.map((b) => b.slug));
   const hits = searchMinumsa(addQuery);
 
+  if (!addQuery.trim()) {
+    return `<p class="hint">읽고 있는 책을 찾아 꽂아 보세요. 어휘는 비어 있는 채로 시작합니다.</p>`;
+  }
+  if (!hits.length) {
+    return `<p class="hint">전집 목록에서 찾지 못했어요. 아래에 직접 적어 넣을 수 있어요.</p>`;
+  }
+  return `<ul class="hit-list">
+    ${hits
+      .map(
+        (b) => `<li>
+          <button type="button" data-no="${b.no}"
+                  ${on.has(`minumsa-${b.no}`) ? "disabled" : ""}>
+            <span class="hit-no">${String(b.no).padStart(3, "0")}</span>
+            <span class="hit-title">${escapeHtml(b.title)}</span>
+            <span class="hit-author">${escapeHtml(b.author)}</span>
+            <span class="hit-add">${on.has(`minumsa-${b.no}`) ? "꽂음" : "꽂기"}</span>
+          </button>
+        </li>`
+      )
+      .join("")}
+  </ul>`;
+}
+
+function wireHits() {
+  $("add-hits")
+    ?.querySelectorAll("[data-no]")
+    .forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const b = MINUMSA.find((x) => x.no === Number(btn.dataset.no));
+        const added = await store.addMyBook({
+          book: b.title,
+          author: b.author,
+          no: b.no,
+        });
+        myBooks = await store.getMyBooks();
+        openSet(added.slug);
+      });
+    });
+}
+
+function updateHits() {
+  const box = $("add-hits");
+  if (!box) return;
+  box.innerHTML = hitsHtml();
+  wireHits();
+}
+
+function renderAdd() {
   $("site-title").textContent = "읽는 책 추가";
   $("site-subtitle").textContent = `민음사 세계문학전집 ${MINUMSA.length}권`;
 
@@ -356,33 +410,9 @@ function renderAdd() {
                placeholder="제목 · 저자 · 전집 번호" aria-label="책 검색">
       </form>
 
-      <div id="add-hits">
-        ${
-          !addQuery.trim()
-            ? `<p class="hint">읽고 있는 책을 찾아 꽂아 보세요. 어휘는 비어 있는 채로 시작합니다.</p>`
-            : hits.length
-            ? `<ul class="hit-list">
-                 ${hits
-                   .map(
-                     (b) => `<li>
-                       <button type="button" data-no="${b.no}"
-                               ${on.has(`minumsa-${b.no}`) ? "disabled" : ""}>
-                         <span class="hit-no">${String(b.no).padStart(3, "0")}</span>
-                         <span class="hit-title">${escapeHtml(b.title)}</span>
-                         <span class="hit-author">${escapeHtml(b.author)}</span>
-                         <span class="hit-add">${
-                           on.has(`minumsa-${b.no}`) ? "꽂음" : "꽂기"
-                         }</span>
-                       </button>
-                     </li>`
-                   )
-                   .join("")}
-               </ul>`
-            : `<p class="hint">전집 목록에서 찾지 못했어요. 아래에 직접 적어 넣을 수 있어요.</p>`
-        }
-      </div>
+      <div id="add-hits">${hitsHtml()}</div>
 
-      <details class="add-own"${addQuery.trim() && !hits.length ? " open" : ""}>
+      <details class="add-own">
         <summary>목록에 없는 책 직접 넣기</summary>
         <form id="add-own-form" autocomplete="off">
           <input type="text" name="book" placeholder="책 제목" required>
@@ -420,20 +450,26 @@ function renderAdd() {
   input.setSelectionRange(input.value.length, input.value.length);
 
   // 입력하는 동안 바로 걸러 보여 줍니다. 검색 버튼을 누르게 하지 않습니다.
-  input.addEventListener("input", () => {
+  //
+  // ⚠ 화면 전체를 다시 그리면 안 됩니다. 입력칸이 통째로 교체되는 순간
+  //    한글 조합이 끊겨 "ㅇㅣㅂㅏㅇ" 처럼 자모가 흩어집니다.
+  //    결과 목록만 갈아 끼우고 입력칸은 그대로 둡니다.
+  //    조합 중(composing)에는 아예 건드리지 않고, 글자가 완성된 뒤 한 번만 거릅니다.
+  let composing = false;
+  input.addEventListener("compositionstart", () => (composing = true));
+  input.addEventListener("compositionend", () => {
+    composing = false;
     addQuery = input.value;
-    renderAdd();
+    updateHits();
   });
-  $("add-search").addEventListener("submit", (e) => e.preventDefault());
+  input.addEventListener("input", () => {
+    if (composing) return;
+    addQuery = input.value;
+    updateHits();
+  });
 
-  content.querySelectorAll("[data-no]").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      const b = MINUMSA.find((x) => x.no === Number(btn.dataset.no));
-      const added = await store.addMyBook({ book: b.title, author: b.author, no: b.no });
-      myBooks = await store.getMyBooks();
-      openSet(added.slug);
-    });
-  });
+  $("add-search").addEventListener("submit", (e) => e.preventDefault());
+  wireHits();
 
   $("add-own-form").addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -976,8 +1012,13 @@ function renderBookcase() {
 }
 
 // 책상 위 물건들. 아이콘이 아니라 '선반에 놓인 것'으로 그립니다.
-// 한 굵기의 얇은 선으로 윤곽을 잡고, 그 안을 색면 한 겹으로 채웁니다.
-// 선만 있으면 기호가 되고, 색면이 들어가야 물건이 됩니다.
+// 한 굵기의 얇은 선으로 윤곽을 잡고, 그 안을 면 한 겹으로 채웁니다.
+// 선만 있으면 기호가 되고, 면이 들어가야 물건이 됩니다.
+//
+// 색은 물건의 재료입니다. 종이 · 크라프트 · 유리 — 이름을 붙일 수 있는 것만 씁니다.
+// 색으로 기능을 구분하지 않습니다. 그건 유행을 타고, 몇 해 지나면 촌스러워집니다.
+// 대신 형태로 구분합니다. 형태는 물건이 사라지지 않는 한 낡지 않습니다.
+// 강조색은 '오늘'과 '쓰는 자리'처럼 표시의 뜻이 있는 데만 한 점씩 찍습니다.
 //
 // 크기는 넷이 다 다릅니다. 실제 물건의 비례를 그대로 씁니다.
 // (1칸 ≈ 3.4mm — 책 20cm, 달력 9.5cm, 공책 더미 8cm, 돋보기 13cm)
@@ -985,27 +1026,31 @@ function renderBookcase() {
 // 좌표는 각자의 상자 안에서 바닥에 발을 딛습니다. 줄에서는 아래끝을 맞춥니다.
 const OBJECTS = {
   // 세워 둔 책 — 표지가 정면, 왼쪽에 책등. 넷 중 가장 큽니다.
+  // 강조색은 갈피끈 하나. '이달의 책'은 표시해 둔 책이라는 뜻입니다.
   featured: {
     w: 46,
     h: 66,
     art: `
-      <path class="wine" d="M8 6h30v58H8z"/>
-      <path class="paper" d="M17 24h13v14H17z"/>
+      <path class="kraft" d="M8 6h30v58H8z"/>
+      <path class="shade" d="M8 6h6v58H8z"/>
+      <path class="paper" d="M18 25h13v14H18z"/>
+      <path class="mark" d="M30 6h4v17l-2-2.5L30 23z"/>
       <path d="M8 6h30v58H8z"/>
       <path d="M14 6v58"/>
-      <path d="M17 24h13v14H17z"/>
-      <path d="M20 29h7M20 33h5"/>
-      <path d="M11 12v5M11 53v5"/>`,
+      <path d="M18 25h13v14H18z"/>
+      <path d="M21 30h7M21 34h5"/>
+      <path d="M30 6h4v17l-2-2.5L30 23z"/>`,
   },
 
   // 탁상 달력 — 위는 스프링, 뒤는 세우는 다리
+  // 강조색은 오늘 한 칸.
   calendar: {
     w: 50,
     h: 46,
     art: `
       <path class="paper" d="M7 11h36v28H7z"/>
-      <path class="plum" d="M7 11h36v7H7z"/>
-      <rect class="plum" x="29" y="23" width="8" height="8" rx="1"/>
+      <path class="kraft" d="M7 11h36v7H7z"/>
+      <rect class="mark" x="29" y="23" width="8" height="8" rx="1"/>
       <path d="M15 39l-4 5.5M35 39l4 5.5"/>
       <path d="M7 11h36v28H7z"/>
       <path d="M7 18h36"/>
@@ -1017,28 +1062,30 @@ const OBJECTS = {
   },
 
   // 눕혀 쌓은 공책 두 권과 그 위의 펜 — 낮고 넓습니다.
+  // 강조색은 펜촉. 글이 나오는 자리입니다.
   notes: {
     w: 56,
     h: 26,
     art: `
-      <path class="teal" d="M3 14h50v10H3z"/>
+      <path class="shade" d="M3 14h50v10H3z"/>
       <path class="paper" d="M7 6h38v8H7z"/>
-      <path class="teal" d="M15.75 2.5H43V6H15.75a1.75 1.75 0 0 1 0-3.5z"/>
-      <path class="wine" d="M43 2.5l6 1.75L43 6z"/>
+      <path class="kraft" d="M15.75 1.5H43V6H15.75a2.25 2.25 0 0 1 0-4.5z"/>
+      <path class="mark" d="M43 1.5l6 2.25L43 6z"/>
       <path d="M3 14h50v10H3z"/>
       <path d="M6 20.5h44"/>
       <path d="M7 6h38v8H7z"/>
       <path d="M9 10.5h34"/>
-      <path d="M15.75 2.5H43l6 1.75L43 6H15.75a1.75 1.75 0 0 1 0-3.5z"/>
-      <path d="M43 2.5V6M21 2.5V6"/>`,
+      <path d="M15.75 1.5H43l6 2.25L43 6H15.75a2.25 2.25 0 0 1 0-4.5z"/>
+      <path d="M43 1.5V6M22 1.5V6"/>`,
   },
 
   // 돋보기 — 손잡이가 선반에 닿습니다. 넷 중 가장 작습니다.
+  // 여기엔 표시할 것이 없으므로 강조색을 쓰지 않습니다.
   search: {
     w: 30,
     h: 44,
     art: `
-      <path class="wine" d="M12 25h6v14a3 3 0 0 1-6 0z"/>
+      <path class="kraft" d="M12 25h6v14a3 3 0 0 1-6 0z"/>
       <path d="M12 25h6v14a3 3 0 0 1-6 0z"/>
       <circle class="glass" cx="15" cy="15" r="9.5"/>
       <circle cx="15" cy="15" r="12"/>
@@ -1053,7 +1100,7 @@ function objectHtml(name, label) {
     <button type="button" class="tool" data-tool="${name}">
       <svg viewBox="0 0 ${o.w} ${o.h}" style="--tw:${o.w}px; --th:${o.h}px"
            fill="none" stroke="currentColor"
-           stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+           stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"
            aria-hidden="true">
         ${o.art}
       </svg>
@@ -1124,10 +1171,27 @@ function renderSet(set) {
   content.appendChild(meta);
 
   if (set.words.length === 0) {
+    // 내가 꽂은 책이 비어 있는 것은 고장이 아니라 시작입니다.
+    // 미리 채워 주면 남이 고른 단어 리스트가 되고, 그건 이 앱이 피하려는 것입니다.
+    // 그러니 '준비 중'이라고 하지 않고, 채우는 방법을 알려 줍니다.
     content.insertAdjacentHTML(
       "beforeend",
-      `<div class="empty-state">이 섹션의 어휘는 아직 준비 중이에요. (10단계에서 채웁니다)</div>`
+      set.own
+        ? `<div class="empty-state empty-book">
+             <p><strong>${escapeHtml(set.book)}</strong>는 아직 비어 있어요.</p>
+             <p class="hint">
+               읽다가 걸리는 단어를 담으면 여기에 쌓입니다.<br>
+               남이 고른 목록이 아니라, 내가 이 책에서 건진 단어가 됩니다.
+             </p>
+             <button type="button" id="empty-search" class="quiz-start-btn">단어 담으러 가기</button>
+           </div>`
+        : `<div class="empty-state">이 묶음의 어휘는 아직 준비 중이에요.</div>`
     );
+
+    $("empty-search")?.addEventListener("click", () => {
+      currentBookSlug = set.group; // '담을 곳'의 기본값이 이 책이 되게 합니다
+      openSearch();
+    });
     return;
   }
 

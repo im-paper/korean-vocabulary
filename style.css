@@ -863,12 +863,12 @@ body {
   --spine-4: #a68a83;
   --spine-5: #8f8b7c;
 
-  /* 책상 위 오브제의 색면. 책등보다 한 뼘 선명하다 —
-     책은 여러 권이 줄지어 서지만 물건은 하나씩 놓이기 때문이다. */
-  --obj-wine: #b04a52;
-  --obj-plum: #8a72a6;
-  --obj-teal: #4f9f99;
-  --obj-blue: #4a6ea8;
+  /* 책상 위 오브제의 면. 색이 아니라 재료다 —
+     종이, 크라프트, 그 그늘, 유리. 넷 다 이름을 댈 수 있는 것만 남긴다.
+     원색을 넣는 순간 그 해의 유행이 화면에 박히고, 몇 해 지나면 그것만 보인다. */
+  --obj-kraft: #ded3c1; /* 무표백 종이 */
+  --obj-shade: #cbc0ac; /* 크라프트의 그늘 — 아래로 깔리는 면 */
+  --obj-glass: #dde1e2; /* 유리 — 색이라기보다 비침 */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -882,10 +882,9 @@ body {
     --spine-5: #726f63;
 
     /* 어두운 바탕 위에서는 같은 색이 가라앉는다. 한 단계 밝혀 준다. */
-    --obj-wine: #c4666c;
-    --obj-plum: #a28cc0;
-    --obj-teal: #5fb5ae;
-    --obj-blue: #6d8fc9;
+    --obj-kraft: #4b453b;
+    --obj-shade: #3c372f;
+    --obj-glass: #3f4649;
   }
 }
 
@@ -1065,11 +1064,14 @@ body {
 }
 
 /* 크기는 물건마다 다르다. app.js 가 --tw · --th 로 실제 비례를 넘겨준다.
-   한 크기로 묶는 순간 아이콘 네 개가 되어 버린다. */
+   한 크기로 묶는 순간 아이콘 네 개가 되어 버린다.
+
+   윤곽선은 본문 글자보다 한 단계 연하다. 새까만 선을 쓰면 페이지에서
+   이 네 개가 가장 먼저 보이는데, 이 화면의 주인공은 책등이다. */
 .tool svg {
   width: var(--tw);
   height: var(--th);
-  color: var(--ink);
+  color: color-mix(in srgb, var(--ink) 78%, var(--bg));
   transition: color 0.15s;
 }
 
@@ -1091,10 +1093,10 @@ body {
   color: var(--accent);
 }
 
-/* ── 오브제 색면 ────────────────────────────
+/* ── 오브제의 면 ────────────────────────────
    선만 있으면 아이콘이고, 면이 한 겹 들어가야 사물이 된다.
-   색면은 윤곽선 안쪽을 통째로 채운다. 그러데이션도 그림자도 쓰지 않는다.
-   채도는 원색 바로 아래에서 멈춘다 — 책등 옆에서 튀면 책장이 시끄러워진다. */
+   면은 윤곽선 안쪽을 통째로 채운다. 그러데이션도 그림자도 쓰지 않는다.
+   네 가지 재료뿐이고, 그 위에 표시 하나가 얹힌다. */
 
 .tool svg [class] {
   stroke: none;
@@ -1104,21 +1106,22 @@ body {
   fill: var(--surface);
 }
 
-.tool svg .wine {
-  fill: var(--obj-wine);
+.tool svg .kraft {
+  fill: var(--obj-kraft);
 }
 
-.tool svg .plum {
-  fill: var(--obj-plum);
+.tool svg .shade {
+  fill: var(--obj-shade);
 }
 
-.tool svg .teal {
-  fill: var(--obj-teal);
-}
-
-/* 유리는 한 겹 비쳐야 유리다. */
 .tool svg .glass {
-  fill: color-mix(in srgb, var(--obj-blue) 32%, var(--surface));
+  fill: var(--obj-glass);
+}
+
+/* 표시. 화면을 통틀어 이 색은 '여기를 보라'는 뜻으로만 쓰인다.
+   네 물건 중 셋에 한 점씩, 그것도 가장 작은 조각에만 들어간다. */
+.tool svg .mark {
+  fill: var(--accent);
 }
 
 /* ── 오늘의 되새김 (홈) ──────────────────────
@@ -2118,6 +2121,152 @@ button.spine.placeholder:hover {
   .book-sentences time {
     grid-column: 2;
   }
+}
+
+/* ── 밑줄 (PROMPT.md 5.7) ───────────────────
+   책에서 옮겨 적은 문장. 앱의 다른 어떤 글보다 크게 두고, 주변을 비운다.
+   여기서만은 문장이 카드의 주인이다 — 단어도 버튼도 곁다리로 물러난다. */
+
+.mark-card {
+  margin: 2.5rem 0 0;
+  padding: 1.8rem 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+
+.mark-date,
+.mark-src {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+}
+
+.mark-date {
+  margin-bottom: 1rem;
+  letter-spacing: 0.02em;
+}
+
+.mark-src {
+  margin-top: 1.1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--border);
+}
+
+/* 인용부호를 그리지 않는다. 남의 말을 전시하는 게 아니라 내가 옮겨 적은 것이다. */
+.mark-text {
+  margin: 0;
+  font-size: 1.08rem;
+  line-height: 1.9;
+  color: var(--ink);
+  word-break: keep-all; /* 한국어는 어절 단위로 끊겨야 읽힌다 */
+}
+
+/* 밑줄 안에서 이미 배운 단어가 켜지는 자리. 이 기능의 값이 여기 한 줄에 있다.
+   브라우저 기본 형광펜(노랑)은 지운다. 앱에 없는 색이다. */
+.mark-text mark {
+  padding: 0.05em 0.15em;
+  border-radius: 3px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* 아직 한 줄도 없을 때. 무엇을 하는 자리인지만 조용히 말하고 비켜선다. */
+.mark-card.quiet {
+  background: none;
+  border-style: dashed;
+  box-shadow: none;
+}
+
+.mark-card.quiet .mark-text {
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+
+.mark-card.quiet .mark-src {
+  border-top: none;
+  padding-top: 0.4rem;
+  opacity: 0.75;
+}
+
+/* 묶음을 다 넘긴 뒤, 책을 읽으러 가기 직전에 묻는 자리 */
+.mark-ask {
+  max-width: 520px;
+  margin: 3rem auto 0;
+  padding-top: 1.6rem;
+  border-top: 1px solid var(--border);
+}
+
+.mark-ask h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.mark-ask .hint {
+  margin-top: 0.6rem;
+}
+
+/* 남기고 난 자리. 입력칸이 있던 곳에 방금 쓴 문장이 그대로 남는다. */
+.mark-saved {
+  margin-top: 0.9rem;
+}
+
+.mark-saved .mark-text {
+  font-size: 0.95rem;
+  text-align: left;
+}
+
+.book-marks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.book-marks li {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 0.7rem;
+  align-items: baseline;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.book-marks .mark-text {
+  font-size: 0.9rem;
+  line-height: 1.75;
+  text-align: left;
+}
+
+.book-marks time {
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+/* 지우기는 손이 닿을 때만 나타난다. 목록 옆에서 계속 지우라고 재촉하지 않는다. */
+.book-marks .mark-del {
+  font-size: 0.72rem;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.book-marks li:hover .mark-del,
+.book-marks .mark-del:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .book-marks .mark-del {
+    opacity: 1;
+  }
+}
+
+.book-summary .mark-form {
+  margin-top: 1rem;
 }
 
 .empty-state p {
