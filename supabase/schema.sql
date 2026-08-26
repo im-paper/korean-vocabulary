@@ -62,20 +62,44 @@ create table if not exists public.progress (
 );
 
 -- ─────────────────────────────────────────────
--- 4. 조회 속도를 위한 인덱스
+-- 4. 내가 쓴 문장 테이블
+--
+--    이 앱이 사용자에게서 받는 유일한 자산입니다. 채점하지 않고 그대로 담습니다.
+--    가리키는 대상이 위의 words(uuid)가 아니라 word_slug(text)인 이유:
+--    단어 콘텐츠는 프로젝트 파일(data/words.js)에 있고 고정 ID로 단어를 가리키기
+--    때문입니다(예: "ningen-1-wiseon"). 브라우저에 쌓인 문장을 변환 없이 그대로
+--    올릴 수 있습니다. 외래 키를 걸지 않는 것도 같은 이유입니다.
+-- ─────────────────────────────────────────────
+create table if not exists public.sentences (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references auth.users(id) on delete cascade,
+
+  -- 콘텐츠 파일의 고정 ID (PROMPT.md 8.2)
+  word_slug   text not null,
+
+  -- 200자 상한. 한 줄이 기본이지만 더 쓰고 싶으면 막지 않습니다. (PROMPT.md 6.6)
+  text        text not null check (char_length(text) between 1 and 200),
+  created_at  timestamptz not null default now()
+);
+
+-- ─────────────────────────────────────────────
+-- 5. 조회 속도를 위한 인덱스
 -- ─────────────────────────────────────────────
 create index if not exists sets_user_track_idx    on public.sets (user_id, track, set_date desc);
 create index if not exists words_set_idx          on public.words (set_id, sort_order);
 create index if not exists progress_user_word_idx on public.progress (user_id, word_id);
+-- 한 단어의 문장을 최신 것부터 읽습니다.
+create index if not exists sentences_user_word_idx on public.sentences (user_id, word_slug, created_at desc);
 
 -- ─────────────────────────────────────────────
--- 5. 보안 정책 (RLS)
+-- 6. 보안 정책 (RLS)
 --    로그인한 본인의 데이터만 읽고 쓸 수 있게 잠급니다.
 --    이게 없으면 사이트 주소를 아는 누구나 데이터를 볼 수 있습니다.
 -- ─────────────────────────────────────────────
-alter table public.sets     enable row level security;
-alter table public.words    enable row level security;
-alter table public.progress enable row level security;
+alter table public.sets      enable row level security;
+alter table public.words     enable row level security;
+alter table public.progress  enable row level security;
+alter table public.sentences enable row level security;
 
 drop policy if exists "본인 세트만 접근" on public.sets;
 create policy "본인 세트만 접근" on public.sets
@@ -87,4 +111,9 @@ create policy "본인 단어만 접근" on public.words
 
 drop policy if exists "본인 기록만 접근" on public.progress;
 create policy "본인 기록만 접근" on public.progress
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- 내가 쓴 문장은 남에게 보이지 않습니다. 공유 기능은 지금 없습니다. (PROMPT.md 6.6)
+drop policy if exists "본인 문장만 접근" on public.sentences;
+create policy "본인 문장만 접근" on public.sentences
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);

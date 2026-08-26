@@ -3,5 +3,9 @@
   "private": true,
   "version": "1.0.0",
   "description": "페이퍼 어휘장 - 표준국어대사전 기반 한국어 어휘 학습",
-  "type": "module"
+  "type": "module",
+  "//": "이 의존성은 api/ 안의 서버리스 함수에서만 씁니다. 브라우저 쪽은 빌드 없이 순수 ES 모듈을 그대로 씁니다.",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.70.1"
+  }
 }

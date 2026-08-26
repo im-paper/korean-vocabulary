@@ -7,7 +7,8 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- 로그인 전 화면 -->
+  <!-- 로그인 화면 — 지금은 쓰지 않습니다.
+       config.js 의 STORE 가 "supabase" 일 때만 나타납니다. (11단계) -->
   <section id="auth-screen" class="auth-screen" hidden>
     <div class="auth-card">
       <h1>페이퍼 어휘장</h1>
@@ -23,45 +24,73 @@
     </div>
   </section>
 
-  <!-- 로그인 후 화면 -->
-  <div id="app-screen" hidden>
+  <!-- 홈 — 책장 (PROMPT.md 5.1)
+       열면 아무것도 누르지 않아도 내가 쌓은 것이 보입니다.
+       책 표지 이미지는 쓰지 않습니다(저작권). 색과 두께를 가진 책등으로 대신합니다. -->
+  <div id="home-screen" hidden>
     <header class="site-header">
-      <h1 id="site-title">페이퍼 어휘장</h1>
-      <p id="site-subtitle" class="subtitle">국립국어원 표준국어대사전 기준</p>
-      <div class="header-actions">
-        <span id="user-email" class="user-email"></span>
-        <button type="button" id="logout-btn" class="link-btn">로그아웃</button>
-      </div>
+      <h1>페이퍼 어휘장</h1>
+      <p class="subtitle">책에서 만난 단어가 내 문장이 될 때까지</p>
     </header>
 
-    <div id="track-tabs" class="track-tabs" role="tablist" aria-label="어휘장 종류">
-      <button type="button" class="track-tab active" data-track="daily" role="tab">일일 어휘</button>
-      <button type="button" class="track-tab" data-track="book" role="tab">책별 어휘</button>
-    </div>
+    <main class="shelf-wrap">
+      <div id="bookcase" class="bookcase"></div>
+      <p id="home-stat" class="home-stat"></p>
+    </main>
 
-    <nav id="day-nav" class="day-nav" aria-label="세트 선택"></nav>
+    <footer class="site-footer">
+      <p>뜻은 국립국어원 표준국어대사전 원문입니다.</p>
+    </footer>
+  </div>
+
+  <!-- 어휘 화면 — 책장에서 책등을 누르면 들어옵니다. -->
+  <div id="app-screen" hidden>
+    <header class="site-header inner-header">
+      <button type="button" id="back-home" class="back-btn">책장</button>
+      <div class="inner-title">
+        <h1 id="site-title">페이퍼 어휘장</h1>
+        <p id="site-subtitle" class="subtitle"></p>
+      </div>
+      <div class="header-actions">
+        <label class="level-picker">
+          <span>난이도</span>
+          <select id="level-select">
+            <option value="1">쉬운 것까지 (1단계~)</option>
+            <option value="2">기본 (2단계~)</option>
+            <option value="3">어려운 것만 (3단계)</option>
+          </select>
+        </label>
+      </div>
+    </header>
 
     <main id="content" class="content"></main>
 
     <footer class="site-footer">
-      <p>뜻과 예문은 국립국어원 표준국어대사전을 기준으로 작성됩니다.</p>
+      <p>뜻은 국립국어원 표준국어대사전 원문입니다. 예문은 학습용으로 새로 썼습니다.</p>
     </footer>
   </div>
 
-  <!-- 단어 추가 창 -->
-  <div id="add-modal" class="modal" hidden>
+  <!-- 찾기 (PROMPT.md 5.5)
+       입구가 둘입니다. 위쪽 하나만 두면 '단어를 이미 아는 사람'만 쓸 수 있는데,
+       가장 강한 동기(쓰고 싶은데 말이 안 떠오름)는 단어를 모르는 상태에서 시작합니다. -->
+  <div id="search-modal" class="modal" hidden>
     <div class="modal-box">
       <div class="modal-head">
-        <h2 id="add-modal-title">단어 추가</h2>
-        <button type="button" id="add-close" class="link-btn">닫기</button>
+        <h2>찾기</h2>
+        <button type="button" id="search-close" class="link-btn">닫기</button>
       </div>
 
-      <form id="lookup-form" autocomplete="off">
-        <input type="text" id="lookup-input" placeholder="단어를 입력하세요 (예: 아득하다)" required>
-        <button type="submit">사전에서 찾기</button>
-      </form>
+      <div class="search-tabs" role="tablist">
+        <button type="button" class="search-tab active" data-mode="word" role="tab">단어를 안다</button>
+        <button type="button" class="search-tab" data-mode="feel" role="tab">느낌만 안다</button>
+      </div>
 
-      <div id="lookup-result" class="lookup-result"></div>
+      <form id="search-form" autocomplete="off">
+        <input type="text" id="search-input" required>
+        <button type="submit">찾기</button>
+      </form>
+      <p id="search-hint" class="hint"></p>
+      <div id="search-result" class="lookup-result"></div>
     </div>
   </div>
 

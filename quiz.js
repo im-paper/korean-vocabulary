@@ -1,5 +1,5 @@
 import { parseExample, escapeHtml } from "./utils.js";
-import { recordAttempt } from "./lib/db.js";
+import { recordAttempt } from "./lib/store.js";
 
 function shuffle(arr) {
   const a = [...arr];
